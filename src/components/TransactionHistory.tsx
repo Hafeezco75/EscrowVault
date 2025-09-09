@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useCurrentAccount, useSuiClient } from '@mysten/dapp-kit';
-
 interface Transaction {
   id: string;
   type: string;

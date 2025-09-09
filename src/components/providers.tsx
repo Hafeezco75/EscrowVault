@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@mysten/dapp-kit/dist/index.css'; 
 
 // Package and Object IDs for the Escrow Vault smart contract
-export const PACKAGE_ID = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'; // Replace with actual package ID
+export const PACKAGE_ID = '0x5d0dc8c2b1782c52ee425759790ac27a89cbf3207b4aef5acfcce70fc45362c4';
 export const OBJECT_ID = '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'; // Replace with actual object ID
 export const CLOCK_ID = '0x6'; // Standard clock object ID
 
@@ -30,7 +30,7 @@ export function SuiProviders({ children }: { children: React.ReactNode }) {
   return ( 
     <QueryClientProvider client={queryClient}> 
       <SuiClientProvider networks={networkConfig} defaultNetwork="testnet"> 
-        <WalletProvider> 
+        <WalletProvider autoConnect={true} enableUnsafeBurner={false}> 
           {children} 
         </WalletProvider> 
       </SuiClientProvider> 

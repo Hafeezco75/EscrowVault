@@ -24,3 +24,53 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Hide browser extension injected elements to prevent hydration issues */
+[bis_skin_checked],
+[__processed],
+[data-bis-processed],
+[data-extension-processed],
+[data-adblock-key],
+[__reactInternalInstance],
+[__reactEventHandlers] {
+  /* Don't affect layout of extension-modified elements */
+  transition: none !important;
+}
+
+/* Specifically handle bis_skin_checked attribute from Bitdefender/security extensions */
+*[bis_skin_checked="1"] {
+  /* Ensure these elements don't cause hydration mismatches */
+  /* Reset any potential styling conflicts */
+}
+
+/* Global hydration mismatch prevention */
+.__next {
+  /* Prevent layout shifts during hydration */
+  min-height: 100vh;
+}
+
+/* Prevent hydration mismatches caused by browser extensions */
+body {
+  /* Ensure consistent rendering across server and client */
+  min-height: 100vh;
+}
+
+/* Suppress console warnings for known browser extension attributes */
+* {
+  /* This helps with extension-added attributes */
+}
+
+/* Price ticker animations */
+@keyframes slide-left {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-slide-left {
+  animation: slide-left 20s linear infinite;
+}
+
+.animate-marquee {
+  display: flex;
+  white-space: nowrap;
+}

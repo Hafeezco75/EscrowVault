@@ -1,39 +1,68 @@
 'use client';
 
-import { useSuiClient, useCurrentAccount } from '@mysten/dapp-kit';
+import { useSuiClient, useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import { useCallback, useEffect, useState } from 'react';
-import { VaultService, Vault } from '../services/VaultService';
+import { VaultService, Vault, CreateVaultParams } from '../services/VaultService';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { normalizeSuiAddress } from '@mysten/sui.js/utils';
 import { PACKAGE_ID, OBJECT_ID, CLOCK_ID } from '../components/providers';
-import { TransactionBlock } from '@mysten/sui.js/transactions';
+import { Transaction } from '@mysten/sui/transactions';
 
 export function useVault() {
-  const client = useSuiClient();
   const account = useCurrentAccount();
-  const [vaultService] = useState(() => new VaultService(client));
+  const suiClient = useSuiClient();
+  const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 
   const { data: vaults = [], refetch: refetchVaults } = useQuery({
     queryKey: ['vaults', account?.address],
     queryFn: async () => {
       if (!account?.address) return [];
-      return vaultService.getUserVaults(account.address);
+      
+      try {
+        // Fetch actual vault objects from the blockchain
+        // Query for Escrow objects created by this address
+        console.log('Fetching vaults for address:', account.address);
+        
+        // Note: This assumes the smart contract creates Escrow objects
+        // The exact type should match your smart contract structure
+        const response = await suiClient.getOwnedObjects({
+          owner: account.address,
+          filter: {
+            StructType: `${PACKAGE_ID}::escrow_vault::Escrow`
+          },
+          options: {
+            showContent: true,
+            showDisplay: true,
+            showType: true
+          }
+        });
+        
+        return response.data.map(item => {
+          const content = item.data?.content as any;
+          const fields = content?.dataType === 'moveObject' ? content?.fields : {};
+          return {
+            id: item.data?.objectId || '',
+            owner: account.address,
+            assets: fields?.object_escrowed ? [fields.object_escrowed] : [],
+            locked: true, // Escrow vaults are locked by default
+            createdAt: Date.now()
+          } as Vault;
+        });
+      } catch (error) {
+        console.error('Error fetching vaults:', error);
+        return [];
+      }
     },
     enabled: !!account?.address,
   });
 
   const createVaultMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (params: CreateVaultParams) => {
       if (!account) throw new Error('Wallet not connected');
       
-      const tx = await vaultService.createVault();
-      const result = await client.signAndExecuteTransactionBlock({
-        transactionBlock: tx,
-        account,
-        options: {
-          showEffects: true,
-          showObjectChanges: true,
-        },
+      const tx = VaultService.createVault(params);
+      const result = await signAndExecuteTransaction({
+        transaction: tx,
       });
       
       return result;
@@ -47,13 +76,9 @@ export function useVault() {
     mutationFn: async (vaultId: string) => {
       if (!account) throw new Error('Wallet not connected');
       
-      const tx = await vaultService.lockVault(vaultId);
-      const result = await client.signAndExecuteTransactionBlock({
-        transactionBlock: tx,
-        account,
-        options: {
-          showEffects: true,
-        },
+      const tx = VaultService.lockVault(vaultId);
+      const result = await signAndExecuteTransaction({
+        transaction: tx,
       });
       
       return result;
@@ -64,16 +89,12 @@ export function useVault() {
   });
 
   const unlockVaultMutation = useMutation({
-    mutationFn: async (vaultId: string) => {
+    mutationFn: async ({ lockedId, keyId }: { lockedId: string, keyId: string }) => {
       if (!account) throw new Error('Wallet not connected');
       
-      const tx = await vaultService.unlockVault(vaultId);
-      const result = await client.signAndExecuteTransactionBlock({
-        transactionBlock: tx,
-        account,
-        options: {
-          showEffects: true,
-        },
+      const tx = VaultService.unlockVault(lockedId, keyId);
+      const result = await signAndExecuteTransaction({
+        transaction: tx,
       });
       
       return result;
@@ -84,115 +105,12 @@ export function useVault() {
   });
 
   const swapAssetsMutation = useMutation({
-    mutationFn: async ({ vaultId, assetId, targetAssetType }: { vaultId: string, assetId: string, targetAssetType: string }) => {
-      if (!account) throw new Error('Wallet not connected');
-      
-      const tx = await vaultService.swapAssets(vaultId, assetId, targetAssetType);
-      const result = await client.signAndExecuteTransactionBlock({
-        transactionBlock: tx,
-        account,
-        options: {
-          showEffects: true,
-        },
-      });
-      
-      return result;
-    },
-    onSuccess: () => {
-      refetchVaults();
-    },
-  });
-
-  // Create Escrow Mutation
-  const createEscrowMutation = useMutation({
-    mutationFn: async ({ key, recipientExchangeKey, recipient }: { key: string, recipientExchangeKey: string, recipient: string }) => {
-      if (!account) throw new Error('Wallet not connected');
-      
-      // Add implementation for creating an escrow vault
-      const tx = new TransactionBlock();
-      
-      tx.moveCall({
-        target: `${PACKAGE_ID}::vault::create_escrow`,
-        arguments: [
-          tx.object(OBJECT_ID),
-          tx.pure(key),
-          tx.pure(recipientExchangeKey),
-          tx.pure(normalizeSuiAddress(recipient)),
-          tx.pure(key),
-          tx.object(CLOCK_ID)
-        ],
-      });
-      
-      const result = await client.signAndExecuteTransactionBlock({
-        transactionBlock: tx,
-        account,
-        options: {
-          showEffects: true,
-          showObjectChanges: true,
-        },
-      });
-      
-      return result;
-    },
-    onSuccess: () => {
-      refetchVaults();
-    },
-  });
-
-  // Unlock Escrow Mutation
-  const unlockEscrowMutation = useMutation({
-    mutationFn: async ({ tableId, objectId }: { tableId: string, objectId: string }) => {
-      if (!account) throw new Error('Wallet not connected');
-      
-      // Add implementation for unlocking an escrow vault
-      const tx = new TransactionBlock();
-      
-      tx.moveCall({
-        target: `${PACKAGE_ID}::vault::unlock_escrow`,
-        arguments: [
-          tx.object(tableId),
-          tx.object(objectId),
-          tx.object(CLOCK_ID)
-        ],
-      });
-      
-      const result = await client.signAndExecuteTransactionBlock({
-        transactionBlock: tx,
-        account,
-        options: {
-          showEffects: true,
-        },
-      });
-      
-      return result;
-    },
-    onSuccess: () => {
-      refetchVaults();
-    },
-  });
-
-  // Swap Escrow Mutation
-  const swapEscrowMutation = useMutation({
     mutationFn: async ({ ownerEscrowId, recipientEscrowId }: { ownerEscrowId: string, recipientEscrowId: string }) => {
       if (!account) throw new Error('Wallet not connected');
       
-      // Add implementation for swapping escrow vaults
-      const tx = new TransactionBlock();
-      
-      tx.moveCall({
-        target: `${PACKAGE_ID}::vault::swap_escrow`,
-        arguments: [
-          tx.object(ownerEscrowId),
-          tx.object(recipientEscrowId)
-        ],
-      });
-      
-      const result = await client.signAndExecuteTransactionBlock({
-        transactionBlock: tx,
-        account,
-        options: {
-          showEffects: true,
-        },
+      const tx = VaultService.swapAssets(ownerEscrowId, recipientEscrowId);
+      const result = await signAndExecuteTransaction({
+        transaction: tx,
       });
       
       return result;
@@ -204,27 +122,12 @@ export function useVault() {
 
   // Return to Sender Mutation
   const returnToSenderMutation = useMutation({
-    mutationFn: async ({ escrowId, tableId, lockedKey }: { escrowId: string, tableId: string, lockedKey: string }) => {
+    mutationFn: async (escrowId: string) => {
       if (!account) throw new Error('Wallet not connected');
       
-      // Add implementation for returning escrow to sender
-      const tx = new TransactionBlock();
-      
-      tx.moveCall({
-        target: `${PACKAGE_ID}::vault::return_to_sender`,
-        arguments: [
-          tx.object(escrowId),
-          tx.object(tableId),
-          tx.pure(lockedKey)
-        ],
-      });
-      
-      const result = await client.signAndExecuteTransactionBlock({
-        transactionBlock: tx,
-        account,
-        options: {
-          showEffects: true,
-        },
+      const tx = VaultService.returnToSender(escrowId);
+      const result = await signAndExecuteTransaction({
+        transaction: tx,
       });
       
       return result;
@@ -238,6 +141,7 @@ export function useVault() {
     vaults,
     isConnected: !!account,
     createVault: createVaultMutation.mutate,
+    createVaultAsync: createVaultMutation.mutateAsync,
     isCreatingVault: createVaultMutation.isPending,
     lockVault: lockVaultMutation.mutate,
     isLockingVault: lockVaultMutation.isPending,
@@ -245,13 +149,6 @@ export function useVault() {
     isUnlockingVault: unlockVaultMutation.isPending,
     swapAssets: swapAssetsMutation.mutate,
     isSwappingAssets: swapAssetsMutation.isPending,
-    // New escrow functions
-    createEscrow: createEscrowMutation.mutate,
-    isCreatingEscrow: createEscrowMutation.isPending,
-    unlockEscrow: unlockEscrowMutation.mutate,
-    isUnlockingEscrow: unlockEscrowMutation.isPending,
-    swapEscrow: swapEscrowMutation.mutate,
-    isSwappingEscrow: swapEscrowMutation.isPending,
     returnToSender: returnToSenderMutation.mutate,
     isReturningToSender: returnToSenderMutation.isPending,
     refetchVaults,

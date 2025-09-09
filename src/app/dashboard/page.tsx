@@ -1,24 +1,56 @@
 'use client';
 
 import { useVault } from "../../hooks/useVault";
+import { useEscrowVault } from "../../hooks/useEscrowVault";
 import { useCurrentAccount } from "@mysten/dapp-kit";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import UserStatistics from "../../components/UserStatistics";
 import TransactionHistory from "../../components/TransactionHistory";
-import EscrowForm from "../../components/EscrowForm";
-import UnlockEscrowForm from "../../components/UnlockEscrowForm";
-import SwapEscrowForm from "../../components/SwapEscrowForm";
-import ReturnToSenderForm from "../../components/ReturnToSenderForm";
+import CreateEscrowForm from "../../components/escrow/CreateEscrowForm";
+import SellerEscrowForm from "../../components/escrow/SellerEscrowForm";
+import UnlockEscrowVaultForm from "../../components/escrow/UnlockEscrowVaultForm";
+import SwapEscrowVaultForm from "../../components/escrow/SwapEscrowVaultForm";
+import ReturnToSenderForm from "../../components/escrow/ReturnToSenderForm";
+import DashboardSidebar from "../../components/DashboardSidebar";
+import PriceTicker from "../../components/PriceTicker";
+import Button from "../../components/common/Button";
 
 export default function Dashboard() {
   const { vaults, lockVault, unlockVault, swapAssets, isConnected, refetchVaults } = useVault();
+  const { escrowVaults, refreshEscrowVaults, isConnected: isEscrowConnected } = useEscrowVault();
   const account = useCurrentAccount();
-  const [activeTab, setActiveTab] = useState('vaults'); // 'vaults', 'escrow', or 'history'
-  const [selectedVault, setSelectedVault] = useState<string | null>(null);
-  const [isSwapping, setIsSwapping] = useState(false);
-  const [assetId, setAssetId] = useState('');
-  const [targetAssetType, setTargetAssetType] = useState('');
+  const [activeTab, setActiveTab] = useState('vaults');
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Initialize loading state
+  useEffect(() => {
+    if (account?.address) {
+      // Simulate loading time for data fetching
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setIsLoading(false);
+    }
+  }, [account?.address]);
+
+  const getActiveTabLabel = (tab: string) => {
+    const labels: Record<string, string> = {
+      'vaults': 'My Vaults',
+      'escrow': 'My Escrows', 
+      'create-escrow': 'Create Escrow',
+      'unlock-escrow': 'Unlock Vault',
+      'swap-escrow': 'Swap Vault',
+      'create-seller-escrow': 'Seller Escrow',
+      'return-escrow': 'Return Escrow',
+      'history': 'Transaction History'
+    };
+    return labels[tab] || 'Dashboard';
+  };
 
   const handleLockVault = async (vaultId: string) => {
     try {
@@ -31,200 +63,273 @@ export default function Dashboard() {
 
   const handleUnlockVault = async (vaultId: string) => {
     try {
-      await unlockVault(vaultId);
+      await unlockVault({ lockedId: vaultId, keyId: vaultId });
       await refetchVaults();
     } catch (error) {
       console.error('Error unlocking vault:', error);
     }
   };
 
-  const handleSwapAssets = async () => {
-    if (!selectedVault || !assetId || !targetAssetType) return;
-    
-    try {
-      await swapAssets({ vaultId: selectedVault, assetId, targetAssetType });
-      setIsSwapping(false);
-      setAssetId('');
-      setTargetAssetType('');
-      await refetchVaults();
-    } catch (error) {
-      console.error('Error swapping assets:', error);
-    }
+  const handleEscrowSuccess = () => {
+    setSuccessMessage('Escrow vault operation completed successfully!');
+    setShowSuccessMessage(true);
+    refreshEscrowVaults();
+    setTimeout(() => setShowSuccessMessage(false), 5000);
   };
 
-  if (!isConnected) {
+  // Navigation handlers
+  const handleUnlockVaultClick = (vaultId: string) => () => handleUnlockVault(vaultId);
+  const handleLockVaultClick = (vaultId: string) => () => handleLockVault(vaultId);
+  const handleNavigateToSwapEscrow = () => setActiveTab('swap-escrow');
+  const handleNavigateToCreateEscrow = () => setActiveTab('create-escrow');
+  const handleNavigateToUnlockEscrow = () => setActiveTab('unlock-escrow');
+  const handleNavigateToReturnEscrow = () => setActiveTab('return-escrow');
+
+  if (!isConnected || !account) {
     return (
-      <div className="min-h-screen p-8 pb-20 sm:p-20">
-        <div className="max-w-6xl mx-auto mt-10 text-center">
-          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-8" role="alert">
-            <p>Please connect your wallet to view your vaults.</p>
+      <div className="min-h-screen bg-gray-50">
+        <div className="p-8 pb-20 sm:p-20">
+          <div className="max-w-6xl mx-auto mt-10 text-center">
+            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-8 rounded" role="alert">
+              <p className="font-medium">Please connect your wallet to view your vaults.</p>
+            </div>
+            <Link href="/" className="text-blue-600 hover:text-blue-800 underline font-medium">
+              Return to Home
+            </Link>
           </div>
-          <Link href="/" className="text-blue-600 hover:text-blue-800 underline">
-            Return to Home
-          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state while initializing
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <PriceTicker />
+        <div className="p-8 pb-20 sm:p-20">
+          <div className="max-w-6xl mx-auto mt-10 text-center">
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 p-6 rounded-lg">
+              <div className="flex items-center justify-center mb-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+              <p className="font-medium">Loading your vaults...</p>
+              <p className="text-sm text-blue-600 mt-2">Please wait while we fetch your data</p>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-8 pb-20 sm:p-20">
-      <div className="max-w-6xl mx-auto mt-10">
-        <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
-        
-        {/* User Statistics */}
-        <UserStatistics />
-        
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200 dark:border-gray-700 mb-8">
-          <ul className="flex flex-wrap -mb-px">
-            <li className="mr-2">
-              <button 
-                onClick={() => setActiveTab('vaults')} 
-                className={`inline-block p-4 border-b-2 rounded-t-lg ${activeTab === 'vaults' ? 'text-pink-500 border-pink-500' : 'border-transparent hover:text-gray-300 hover:border-gray-600 text-white'}`}
-              >
-                Vaults
-              </button>
-            </li>
-            <li className="mr-2">
-              <button 
-                onClick={() => setActiveTab('escrow')} 
-                className={`inline-block p-4 border-b-2 rounded-t-lg ${activeTab === 'escrow' ? 'text-pink-500 border-pink-500' : 'border-transparent hover:text-gray-300 hover:border-gray-600 text-white'}`}
-              >
-                Escrow
-              </button>
-            </li>
-            <li className="mr-2">
-              <button 
-                onClick={() => setActiveTab('history')} 
-                className={`inline-block p-4 border-b-2 rounded-t-lg ${activeTab === 'history' ? 'text-pink-500 border-pink-500' : 'border-transparent hover:text-gray-300 hover:border-gray-600 text-white'}`}
-              >
-                History
-              </button>
-            </li>
-          </ul>
-        </div>
-        
-        {/* Vaults Tab */}
-        {activeTab === 'vaults' && (
-          <div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {vaults.length === 0 ? (
-                <div className="col-span-full text-center py-10">
-                  <p className="text-gray-500 dark:text-gray-400 mb-4">You don't have any vaults yet.</p>
-                  <Link 
-                    href="/" 
-                    className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
-                  >
-                    Create Your First Vault
-                  </Link>
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+        <div className="max-w-7xl mx-auto">
+          <PriceTicker />
+          <div className="flex gap-8">
+            <DashboardSidebar 
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              vaultCount={Array.isArray(vaults) ? vaults.length : 0}
+              escrowVaultCount={Array.isArray(escrowVaults) ? escrowVaults.length : 0}
+            />
+            <div className="flex-1">
+              <div className="mb-8">
+                <div className="flex items-center mb-4">
+                  <h1 className="text-3xl font-bold mr-4">Dashboard</h1>
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                    {getActiveTabLabel(activeTab)}
+                  </span>
                 </div>
-              ) : (
-                vaults.map((vault) => (
-                  <div key={vault.id} className="bg-gray-900 p-6 rounded-lg shadow-md">
-                    <h3 className="text-xl font-semibold mb-2 truncate" title={vault.id}>Vault ID: {vault.id.substring(0, 8)}...</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                      Status: <span className={`font-semibold ${vault.locked ? 'text-red-500' : 'text-green-500'}`}>
-                        {vault.locked ? 'Locked' : 'Unlocked'}
-                      </span>
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                      Assets: {vault.assets.length}
-                    </p>
+                <p className="text-gray-600">Manage your escrow vaults and transactions</p>
+              </div>
+              
+              {showSuccessMessage && (
+                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
+                  {successMessage}
+                </div>
+              )}
+              
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                {activeTab === 'vaults' && (
+                  <div>
+                    <h2 className="text-2xl font-bold mb-6">Your Vaults</h2>
                     
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      {vault.locked ? (
-                        <button 
-                          onClick={() => handleUnlockVault(vault.id)}
-                          className="bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded"
-                        >
-                          Unlock
-                        </button>
-                      ) : (
-                        <button 
-                          onClick={() => handleLockVault(vault.id)}
-                          className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
-                        >
-                          Lock
-                        </button>
-                      )}
-                      
-                      <button 
-                        onClick={() => {
-                          setSelectedVault(vault.id);
-                          setIsSwapping(true);
-                        }}
-                        disabled={vault.locked}
-                        className="bg-pink-400 hover:bg-pink-500 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Swap
-                      </button>
+                    {/* Show UserStatistics at top of vaults tab */}
+                    <div className="mb-8">
+                      <UserStatistics />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {Array.isArray(vaults) && vaults.map((vault: any) => (
+                        <div key={vault.id} className="bg-gray-50 p-6 rounded-lg border">
+                          <h3 className="text-xl font-semibold mb-2 truncate" title={vault.id}>Vault ID: {vault.id?.substring(0, 8)}...</h3>
+                          <p className="text-sm text-gray-600 mb-4">
+                            Status: <span className={`font-semibold ${vault.locked ? 'text-red-500' : 'text-green-500'}`}>
+                              {vault.locked ? 'Locked' : 'Unlocked'}
+                            </span>
+                          </p>
+                          <p className="text-sm text-gray-600 mb-4">
+                            Assets: {vault.assets?.length || 0}
+                          </p>
+                          
+                          <div className="flex flex-wrap gap-2 mt-4">
+                            {vault.locked ? (
+                              <Button 
+                                onClick={handleUnlockVaultClick(vault.id)}
+                                variant="success"
+                                size="sm"
+                              >
+                                Unlock
+                              </Button>
+                            ) : (
+                              <Button 
+                                onClick={handleLockVaultClick(vault.id)}
+                                variant="primary"
+                                size="sm"
+                              >
+                                Lock
+                              </Button>
+                            )}
+                            
+                            <Button 
+                              onClick={handleNavigateToSwapEscrow}
+                              disabled={vault.locked}
+                              variant="warning"
+                              size="sm"
+                            >
+                              Swap
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))
-              )}
+                )}
+                
+                {activeTab === 'escrow' && (
+                  <div>
+                    <h2 className="text-2xl font-bold mb-6">Your Escrow Vaults</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {!Array.isArray(escrowVaults) || escrowVaults.length === 0 ? (
+                        <div className="col-span-full text-center py-10">
+                          <div className="bg-gray-100 rounded-lg p-8">
+                            <div className="text-4xl mb-4">🤝</div>
+                            <p className="text-gray-500 mb-4 text-lg">You don't have any escrow vaults yet.</p>
+                            <p className="text-gray-400 text-sm mb-6">Create an escrow to securely trade with others</p>
+                            <Button 
+                              onClick={handleNavigateToCreateEscrow}
+                              variant="primary"
+                              size="md"
+                            >
+                              Create Your First Escrow
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        escrowVaults.map((escrow) => (
+                          <div key={escrow.id} className="bg-gray-50 p-6 rounded-lg border">
+                            <h3 className="text-xl font-semibold mb-2 truncate" title={escrow.id}>
+                              Escrow ID: {escrow.id.substring(0, 8)}...
+                            </h3>
+                            <p className="text-sm text-gray-600 mb-2">
+                              Sender: {escrow.sender.substring(0, 8)}...
+                            </p>
+                            <p className="text-sm text-gray-600 mb-2">
+                              Recipient: {escrow.recipient.substring(0, 8)}...
+                            </p>
+                            <p className="text-sm text-gray-600 mb-4">
+                              Status: <span className="font-semibold text-yellow-600">Locked</span>
+                            </p>
+                            
+                            <div className="flex flex-wrap gap-2 mt-4">
+                              <Button 
+                                onClick={handleNavigateToUnlockEscrow}
+                                variant="success"
+                                size="sm"
+                              >
+                                Unlock
+                              </Button>
+                              <Button 
+                                onClick={handleNavigateToSwapEscrow}
+                                variant="warning"
+                                size="sm"
+                              >
+                                Swap
+                              </Button>
+                              <Button 
+                                onClick={handleNavigateToReturnEscrow}
+                                variant="danger"
+                                size="sm"
+                              >
+                                Return
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}                
+                {activeTab === 'create-escrow' && (
+                  <div>
+                    <h2 className="text-2xl font-bold mb-6">Create New Escrow</h2>
+                    <div className="max-w-2xl">
+                      <CreateEscrowForm onSuccess={handleEscrowSuccess} />
+                    </div>
+                  </div>
+                )}
+                
+                {activeTab === 'create-seller-escrow' && (
+                  <div>
+                    <h2 className="text-2xl font-bold mb-6">Create Seller Escrow</h2>
+                    <div className="max-w-2xl">
+                      <SellerEscrowForm onSuccess={handleEscrowSuccess} />
+                    </div>
+                  </div>
+                )}
+                
+                {activeTab === 'unlock-escrow' && (
+                  <div>
+                    <h2 className="text-2xl font-bold mb-6">Unlock Escrow Vault</h2>
+                    <div className="max-w-2xl">
+                      <UnlockEscrowVaultForm onSuccess={handleEscrowSuccess} />
+                    </div>
+                  </div>
+                )}
+                
+                {activeTab === 'swap-escrow' && (
+                  <div>
+                    <h2 className="text-2xl font-bold mb-6">Swap Escrow Vaults</h2>
+                    <div className="max-w-2xl">
+                      <SwapEscrowVaultForm onSuccess={handleEscrowSuccess} />
+                    </div>
+                  </div>
+                )}
+                
+                {activeTab === 'return-escrow' && (
+                  <div>
+                    <h2 className="text-2xl font-bold mb-6">Return Escrow to Sender</h2>
+                    <div className="max-w-2xl">
+                      <ReturnToSenderForm onSuccess={handleEscrowSuccess} />
+                    </div>
+                  </div>
+                )}
+                
+                {activeTab === 'history' && (
+                  <div>
+                    <h2 className="text-2xl font-bold mb-6">Transaction History</h2>
+                    <div className="mb-8">
+                      <UserStatistics />
+                    </div>
+                    <TransactionHistory />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        )}
-        
-        {/* History Tab */}
-        {activeTab === 'history' && (
-          <div className="bg-gray-900 p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4">Transaction History</h2>
-            <TransactionHistory />
-          </div>
-        )}
-        
-        {/* Swap Modal */}
-        {isSwapping && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-gray-900 p-6 rounded-lg shadow-md max-w-md w-full">
-              <h2 className="text-xl font-semibold mb-4">Swap Assets</h2>
-              
-              <div className="mb-4">
-                <label className="block text-gray-300 mb-2">Asset ID</label>
-                <input 
-                  type="text" 
-                  value={assetId}
-                  onChange={(e) => setAssetId(e.target.value)}
-                  className="w-full p-2 border border-gray-600 bg-gray-800 text-white rounded"
-                  placeholder="Enter asset ID"
-                />
-              </div>
-              
-              <div className="mb-6">
-                <label className="block text-gray-300 mb-2">Target Asset Type</label>
-                <input 
-                  type="text" 
-                  value={targetAssetType}
-                  onChange={(e) => setTargetAssetType(e.target.value)}
-                  className="w-full p-2 border border-gray-600 bg-gray-800 text-white rounded"
-                  placeholder="Enter target asset type"
-                />
-              </div>
-              
-              <div className="flex justify-end gap-2">
-                <button 
-                  onClick={() => {
-                    setIsSwapping(false);
-                    setAssetId('');
-                    setTargetAssetType('');
-                  }}
-                  className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleSwapAssets}
-                  disabled={!assetId || !targetAssetType}
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Swap
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
