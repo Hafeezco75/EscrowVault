@@ -81,7 +81,9 @@ export class CoinPriceService {
         
         if (!response.ok) {
           const errorText = await response.text();
-          console.error(`HTTP error ${response.status}: ${errorText}`);
+          const statusCode = response.status || 'Unknown';
+          const statusText = response.statusText || 'Unknown Error';
+          console.error(`HTTP error ${statusCode}: ${errorText}`);
           
           // If it's a rate limit or server error, retry
           if (response.status === 429 || response.status >= 500) {

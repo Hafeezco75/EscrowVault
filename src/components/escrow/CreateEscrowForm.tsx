@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useEscrowVault } from '../../hooks/useEscrowVault';
 import { useCurrentAccount } from '@mysten/dapp-kit';
 import Button from '../common/Button';
+import PasswordInput from '../common/PasswordInput';
 
 interface CreateEscrowFormProps {
   onSuccess?: () => void;
@@ -94,24 +95,24 @@ export default function CreateEscrowForm({ onSuccess }: CreateEscrowFormProps) {
     setFormState(prev => ({ ...prev, recipient: e.target.value }));
 
   return (
-    <div className="bg-gray-100 p-6 rounded-lg shadow-lg border border-gray-200">
-      <h2 className="text-2xl font-bold mb-6 text-gray-900">
+    <div className="bg-gray-100 dark:bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+      <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">
         Create Escrow
       </h2>
       
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">
+          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
             Key Object ID
           </label>
           <input 
             type="text" 
             value={formState.key}
             onChange={handleKeyChange}
-            className={`w-full p-3 border rounded-lg transition-colors bg-white text-gray-900 ${
+            className={`w-full p-3 border rounded-lg transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
               formState.errors.key 
-                ? 'border-red-500 focus:border-red-500' 
-                : 'border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200'
+                ? 'border-red-500 focus:border-red-500 dark:border-red-400 dark:focus:border-red-400' 
+                : 'border-gray-300 dark:border-gray-600 focus:border-blue-600 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800'
             }`}
             placeholder="0x... (Key object for the escrow)"
           />
@@ -119,17 +120,17 @@ export default function CreateEscrowForm({ onSuccess }: CreateEscrowFormProps) {
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">
+          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
             Locked Asset ID
           </label>
           <input 
             type="text" 
             value={formState.locked}
             onChange={handleLockedChange}
-            className={`w-full p-3 border rounded-lg transition-colors bg-white text-gray-900 ${
+            className={`w-full p-3 border rounded-lg transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
               formState.errors.locked 
-                ? 'border-red-500 focus:border-red-500' 
-                : 'border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200'
+                ? 'border-red-500 focus:border-red-500 dark:border-red-400 dark:focus:border-red-400' 
+                : 'border-gray-300 dark:border-gray-600 focus:border-blue-600 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800'
             }`}
             placeholder="0x... (Asset to be locked in escrow)"
           />
@@ -137,19 +138,15 @@ export default function CreateEscrowForm({ onSuccess }: CreateEscrowFormProps) {
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">
+          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
             Recipient Exchange Key
           </label>
-          <input 
-            type="text" 
+          <PasswordInput
             value={formState.recipientExchangeKey}
             onChange={handleRecipientExchangeKeyChange}
-            className={`w-full p-3 border rounded-lg transition-colors bg-white text-gray-900 ${
-              formState.errors.recipientExchangeKey 
-                ? 'border-red-500 focus:border-red-500' 
-                : 'border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200'
-            }`}
             placeholder="Enter recipient's exchange key"
+            error={!!formState.errors.recipientExchangeKey}
+            autoComplete="new-password"
           />
           {formState.errors.recipientExchangeKey && (
             <p className="text-red-500 text-sm mt-1">{formState.errors.recipientExchangeKey}</p>
@@ -157,17 +154,17 @@ export default function CreateEscrowForm({ onSuccess }: CreateEscrowFormProps) {
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">
+          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
             Recipient Address
           </label>
           <input 
             type="text" 
             value={formState.recipient}
             onChange={handleRecipientChange}
-            className={`w-full p-3 border rounded-lg transition-colors bg-white text-gray-900 ${
+            className={`w-full p-3 border rounded-lg transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
               formState.errors.recipient 
-                ? 'border-red-500 focus:border-red-500' 
-                : 'border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200'
+                ? 'border-red-500 focus:border-red-500 dark:border-red-400 dark:focus:border-red-400' 
+                : 'border-gray-300 dark:border-gray-600 focus:border-blue-600 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800'
             }`}
             placeholder="0x..."
           />
@@ -175,7 +172,7 @@ export default function CreateEscrowForm({ onSuccess }: CreateEscrowFormProps) {
         </div>
         
         {formState.errors.submit && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded">
             {formState.errors.submit}
           </div>
         )}

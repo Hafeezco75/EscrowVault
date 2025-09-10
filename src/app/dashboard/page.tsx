@@ -25,7 +25,7 @@ export default function Dashboard() {
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize loading state
+  // Initialize loading state and handle page focus for data refresh
   useEffect(() => {
     if (account?.address) {
       // Simulate loading time for data fetching
@@ -37,6 +37,43 @@ export default function Dashboard() {
       setIsLoading(false);
     }
   }, [account?.address]);
+
+  // Refresh data when page becomes visible (e.g., returning from vault creation)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && account?.address) {
+        refetchVaults();
+        refreshEscrowVaults();
+      }
+    };
+
+    const handleFocus = () => {
+      if (account?.address) {
+        refetchVaults();
+        refreshEscrowVaults();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [account?.address, refetchVaults, refreshEscrowVaults]);
+
+  // Periodic refresh every 30 seconds to keep data up to date
+  useEffect(() => {
+    if (!account?.address) return;
+
+    const interval = setInterval(() => {
+      refetchVaults();
+      refreshEscrowVaults();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [account?.address, refetchVaults, refreshEscrowVaults]);
 
   const getActiveTabLabel = (tab: string) => {
     const labels: Record<string, string> = {

@@ -39,7 +39,14 @@ export default function TransactionHistory() {
         });
 
         // Transform the response into our Transaction interface
-        const formattedTransactions: Transaction[] = response.data.map((tx, index) => {
+        // Apply the null safety pattern as requested
+        const params = response ? response.data : null;
+        if (!params || !Array.isArray(params)) {
+          setTransactions([]);
+          return;
+        }
+        
+        const formattedTransactions: Transaction[] = params.map((tx, index) => {
           // This is simplified - in a real app you would parse the actual transaction data
           return {
             id: tx.digest,

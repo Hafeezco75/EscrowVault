@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useEscrowVault } from '../../hooks/useEscrowVault';
 import { useCurrentAccount } from '@mysten/dapp-kit';
 import Button from '../common/Button';
+import PasswordInput from '../common/PasswordInput';
 
 interface SellerEscrowFormProps {
   onSuccess?: () => void;
@@ -104,24 +105,24 @@ export default function SellerEscrowForm({ onSuccess }: SellerEscrowFormProps) {
     setFormState(prev => ({ ...prev, price: e.target.value }));
 
   return (
-    <div className="bg-gray-100 p-6 rounded-lg shadow-lg border border-gray-200">
-      <h2 className="text-2xl font-bold mb-6 text-gray-900">
+    <div className="bg-gray-100 dark:bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+      <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">
         Create Seller Escrow
       </h2>
       
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">
+          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
             Item Key
           </label>
           <input 
             type="text" 
             value={formState.itemKey}
             onChange={handleItemKeyChange}
-            className={`w-full p-3 border rounded-lg transition-colors bg-white text-gray-900 ${
+            className={`w-full p-3 border rounded-lg transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
               formState.errors.itemKey 
-                ? 'border-red-500 focus:border-red-500' 
-                : 'border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200'
+                ? 'border-red-500 focus:border-red-500 dark:border-red-400 dark:focus:border-red-400' 
+                : 'border-gray-300 dark:border-gray-600 focus:border-blue-600 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800'
             }`}
             placeholder="0x... (Key for the item being sold)"
           />
@@ -129,17 +130,17 @@ export default function SellerEscrowForm({ onSuccess }: SellerEscrowFormProps) {
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">
+          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
             Item to Sell (Locked Asset ID)
           </label>
           <input 
             type="text" 
             value={formState.itemLocked}
             onChange={handleItemLockedChange}
-            className={`w-full p-3 border rounded-lg transition-colors bg-white text-gray-900 ${
+            className={`w-full p-3 border rounded-lg transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
               formState.errors.itemLocked 
-                ? 'border-red-500 focus:border-red-500' 
-                : 'border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200'
+                ? 'border-red-500 focus:border-red-500 dark:border-red-400 dark:focus:border-red-400' 
+                : 'border-gray-300 dark:border-gray-600 focus:border-blue-600 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800'
             }`}
             placeholder="0x... (Asset/NFT to be sold)"
           />
@@ -147,17 +148,17 @@ export default function SellerEscrowForm({ onSuccess }: SellerEscrowFormProps) {
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">
+          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
             Buyer Address
           </label>
           <input 
             type="text" 
             value={formState.buyerAddress}
             onChange={handleBuyerAddressChange}
-            className={`w-full p-3 border rounded-lg transition-colors bg-white text-gray-900 ${
+            className={`w-full p-3 border rounded-lg transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
               formState.errors.buyerAddress 
-                ? 'border-red-500 focus:border-red-500' 
-                : 'border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200'
+                ? 'border-red-500 focus:border-red-500 dark:border-red-400 dark:focus:border-red-400' 
+                : 'border-gray-300 dark:border-gray-600 focus:border-blue-600 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800'
             }`}
             placeholder="0x... (Buyer's wallet address)"
           />
@@ -165,19 +166,15 @@ export default function SellerEscrowForm({ onSuccess }: SellerEscrowFormProps) {
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">
+          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
             Buyer Exchange Key
           </label>
-          <input 
-            type="text" 
+          <PasswordInput
             value={formState.buyerExchangeKey}
             onChange={handleBuyerExchangeKeyChange}
-            className={`w-full p-3 border rounded-lg transition-colors bg-white text-gray-900 ${
-              formState.errors.buyerExchangeKey 
-                ? 'border-red-500 focus:border-red-500' 
-                : 'border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200'
-            }`}
             placeholder="Enter buyer's exchange key"
+            error={!!formState.errors.buyerExchangeKey}
+            autoComplete="new-password"
           />
           {formState.errors.buyerExchangeKey && (
             <p className="text-red-500 text-sm mt-1">{formState.errors.buyerExchangeKey}</p>
@@ -185,7 +182,7 @@ export default function SellerEscrowForm({ onSuccess }: SellerEscrowFormProps) {
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-2 text-gray-700">
+          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
             Expected Price (SUI)
           </label>
           <input 
@@ -193,10 +190,10 @@ export default function SellerEscrowForm({ onSuccess }: SellerEscrowFormProps) {
             step="0.01"
             value={formState.price}
             onChange={handlePriceChange}
-            className={`w-full p-3 border rounded-lg transition-colors bg-white text-gray-900 ${
+            className={`w-full p-3 border rounded-lg transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
               formState.errors.price 
-                ? 'border-red-500 focus:border-red-500' 
-                : 'border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200'
+                ? 'border-red-500 focus:border-red-500 dark:border-red-400 dark:focus:border-red-400' 
+                : 'border-gray-300 dark:border-gray-600 focus:border-blue-600 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800'
             }`}
             placeholder="0.00"
           />
@@ -204,14 +201,14 @@ export default function SellerEscrowForm({ onSuccess }: SellerEscrowFormProps) {
         </div>
         
         {formState.errors.submit && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded">
             {formState.errors.submit}
           </div>
         )}
         
-        <div className="bg-blue-50 border border-blue-200 p-4 rounded">
-          <h3 className="font-semibold text-blue-900 mb-2">Seller Information</h3>
-          <p className="text-sm text-blue-700">
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded">
+          <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">Seller Information</h3>
+          <p className="text-sm text-blue-700 dark:text-blue-300">
             <strong>Your Role:</strong> Seller (Item Provider)<br/>
             <strong>Your Address:</strong> {account?.address?.substring(0, 20)}...<br/>
             <strong>Note:</strong> You are creating an escrow to sell your item to the specified buyer.

@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCurrentAccount } from '@mysten/dapp-kit';
 import Link from 'next/link';
 import Button from "../../../components/common/Button";
 
 export default function CreateSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const account = useCurrentAccount();
   const [vaultId, setVaultId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -15,7 +19,19 @@ export default function CreateSuccessPage() {
     setVaultId(id);
   }, [searchParams]);
 
+  // Invalidate vault cache when component mounts to ensure fresh data
+  useEffect(() => {
+    if (account?.address) {
+      // Invalidate the vaults query to force a refresh when user navigates to dashboard
+      queryClient.invalidateQueries({ queryKey: ['vaults', account.address] });
+    }
+  }, [account?.address, queryClient]);
+
   const handleContinue = () => {
+    // Ensure cache is invalidated before navigating
+    if (account?.address) {
+      queryClient.invalidateQueries({ queryKey: ['vaults', account.address] });
+    }
     router.push('/dashboard');
   };
 

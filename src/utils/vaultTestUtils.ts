@@ -30,7 +30,8 @@ export function testVaultCreation(params: CreateVaultParams): VaultTestResult {
       params.key && 
       params.locked && 
       params.ownerExchangeKey && 
-      params.ownerAddress
+      params.ownerAddress &&
+      params.assetObjectId
     );
     
     if (!hasValidParams) {
@@ -40,7 +41,7 @@ export function testVaultCreation(params: CreateVaultParams): VaultTestResult {
         details: {
           packageId: PACKAGE_ID,
           targetFunction: `${PACKAGE_ID}::escrow_vault::create`,
-          argumentCount: 0,
+          argumentCount: 5,
           hasValidParams: false
         }
       };
@@ -57,7 +58,7 @@ export function testVaultCreation(params: CreateVaultParams): VaultTestResult {
         details: {
           packageId: PACKAGE_ID,
           targetFunction: `${PACKAGE_ID}::escrow_vault::create`,
-          argumentCount: 4,
+          argumentCount: 5,
           hasValidParams: true
         }
       };
@@ -69,7 +70,7 @@ export function testVaultCreation(params: CreateVaultParams): VaultTestResult {
       details: {
         packageId: PACKAGE_ID,
         targetFunction: `${PACKAGE_ID}::escrow_vault::create`,
-        argumentCount: 4,
+        argumentCount: 5,
         hasValidParams: true
       }
     };
@@ -83,7 +84,7 @@ export function testVaultCreation(params: CreateVaultParams): VaultTestResult {
       details: {
         packageId: PACKAGE_ID,
         targetFunction: `${PACKAGE_ID}::escrow_vault::create`,
-        argumentCount: 4,
+        argumentCount: 5,
         hasValidParams: true
       }
     };
@@ -101,7 +102,8 @@ export function generateTestVaultParams(walletAddress: string): CreateVaultParam
     key: `test-vault-${timestamp}-${randomSuffix}`,
     locked: `0x${'a'.repeat(40)}`, // Placeholder object ID
     ownerExchangeKey: `exchange-key-${timestamp}`,
-    ownerAddress: walletAddress
+    ownerAddress: walletAddress,
+    assetObjectId: '0xe33452c088430bd785c2a821e8db5d417c7acb8cf22edf82e6e55d3893ccdd5c'
   };
 }
 
@@ -128,6 +130,10 @@ export function validateVaultParams(params: CreateVaultParams): {
   
   if (!params.ownerAddress || !/^0x[a-fA-F0-9]{40,}$/.test(params.ownerAddress)) {
     errors.push('Invalid owner address format');
+  }
+  
+  if (!params.assetObjectId || !/^0x[a-fA-F0-9]{40,}$/.test(params.assetObjectId)) {
+    errors.push('Invalid asset object ID format');
   }
   
   return {

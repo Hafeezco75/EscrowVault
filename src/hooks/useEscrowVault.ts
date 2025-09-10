@@ -16,6 +16,7 @@ import {
 export function useEscrowVault() {
   const account = useCurrentAccount();
   const queryClient = useQueryClient();
+  const suiClient = useSuiClient();
   const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 
   // Query to get user's escrow vaults
@@ -34,7 +35,13 @@ export function useEscrowVault() {
     {
       enabled: !!account?.address,
       select: (data) => {
-        return data.data.map(item => {
+        // Apply the null safety pattern as requested
+        const params = data ? data.data : null;
+        if (!params || !Array.isArray(params)) {
+          return [];
+        }
+        
+        return params.map(item => {
           const content = item.data?.content as any;
           const fields = content?.dataType === 'moveObject' ? content?.fields : {};
           return {
@@ -59,11 +66,39 @@ export function useEscrowVault() {
       
       const tx = EscrowVaultService.createEscrowVault(params);
       
-      const result = await signAndExecuteTransaction({
-        transaction: tx,
+      return new Promise((resolve, reject) => {
+        signAndExecuteTransaction(
+          {
+            transaction: tx,
+          },
+          {
+            onSuccess: async (result) => {
+              try {
+                const txResult = await suiClient.getTransactionBlock({
+                  digest: result.digest,
+                  options: {
+                    showEffects: true,
+                    showObjectChanges: true,
+                  },
+                });
+                
+                if (txResult.effects?.status?.status === 'success') {
+                  console.log('Escrow vault created successfully!');
+                  resolve(txResult);
+                } else {
+                  console.error('Transaction failed:', txResult.effects?.status);
+                  reject(new Error(`Transaction failed: ${txResult.effects?.status?.error || 'Unknown error'}`));
+                }
+              } catch (error) {
+                reject(error);
+              }
+            },
+            onError: (error) => {
+              reject(error);
+            },
+          }
+        );
       });
-      
-      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['getOwnedObjects'] });
@@ -81,11 +116,39 @@ export function useEscrowVault() {
       
       const tx = EscrowVaultService.unlockEscrowVault(params);
       
-      const result = await signAndExecuteTransaction({
-        transaction: tx,
+      return new Promise((resolve, reject) => {
+        signAndExecuteTransaction(
+          {
+            transaction: tx,
+          },
+          {
+            onSuccess: async (result) => {
+              try {
+                const txResult = await suiClient.getTransactionBlock({
+                  digest: result.digest,
+                  options: {
+                    showEffects: true,
+                    showObjectChanges: true,
+                  },
+                });
+                
+                if (txResult.effects?.status?.status === 'success') {
+                  console.log('Escrow vault unlocked successfully!');
+                  resolve(txResult);
+                } else {
+                  console.error('Transaction failed:', txResult.effects?.status);
+                  reject(new Error(`Transaction failed: ${txResult.effects?.status?.error || 'Unknown error'}`));
+                }
+              } catch (error) {
+                reject(error);
+              }
+            },
+            onError: (error) => {
+              reject(error);
+            },
+          }
+        );
       });
-      
-      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['getOwnedObjects'] });
@@ -103,11 +166,39 @@ export function useEscrowVault() {
       
       const tx = EscrowVaultService.swapEscrowVaults(params);
       
-      const result = await signAndExecuteTransaction({
-        transaction: tx,
+      return new Promise((resolve, reject) => {
+        signAndExecuteTransaction(
+          {
+            transaction: tx,
+          },
+          {
+            onSuccess: async (result) => {
+              try {
+                const txResult = await suiClient.getTransactionBlock({
+                  digest: result.digest,
+                  options: {
+                    showEffects: true,
+                    showObjectChanges: true,
+                  },
+                });
+                
+                if (txResult.effects?.status?.status === 'success') {
+                  console.log('Escrow vaults swapped successfully!');
+                  resolve(txResult);
+                } else {
+                  console.error('Transaction failed:', txResult.effects?.status);
+                  reject(new Error(`Transaction failed: ${txResult.effects?.status?.error || 'Unknown error'}`));
+                }
+              } catch (error) {
+                reject(error);
+              }
+            },
+            onError: (error) => {
+              reject(error);
+            },
+          }
+        );
       });
-      
-      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['getOwnedObjects'] });
@@ -125,11 +216,39 @@ export function useEscrowVault() {
       
       const tx = EscrowVaultService.returnEscrowToSender(params);
       
-      const result = await signAndExecuteTransaction({
-        transaction: tx,
+      return new Promise((resolve, reject) => {
+        signAndExecuteTransaction(
+          {
+            transaction: tx,
+          },
+          {
+            onSuccess: async (result) => {
+              try {
+                const txResult = await suiClient.getTransactionBlock({
+                  digest: result.digest,
+                  options: {
+                    showEffects: true,
+                    showObjectChanges: true,
+                  },
+                });
+                
+                if (txResult.effects?.status?.status === 'success') {
+                  console.log('Escrow returned to sender successfully!');
+                  resolve(txResult);
+                } else {
+                  console.error('Transaction failed:', txResult.effects?.status);
+                  reject(new Error(`Transaction failed: ${txResult.effects?.status?.error || 'Unknown error'}`));
+                }
+              } catch (error) {
+                reject(error);
+              }
+            },
+            onError: (error) => {
+              reject(error);
+            },
+          }
+        );
       });
-      
-      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['getOwnedObjects'] });
